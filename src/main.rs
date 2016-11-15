@@ -31,13 +31,24 @@ fn num<Iter: Iterator<Item=char>>(mut iter: Box<Iter>) -> ParseResult<u32,Iter>{
     }
 }
 
-fn num_literal_impl<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>,accum: u32) -> ParseResult<u32,Iter>{
-    if let Result::Ok(ParseSuccess(i,iter)) = num(iter.clone()){
-        num_literal_impl(iter,accum * 10 + i)
+fn backtrack<Iter: Iterator<Item=char> + Clone,
+   T,Parser: FnOnce(Box<Iter>) -> ParseResult<T,Iter>,
+   U,Success: FnOnce(Box<Iter>,T) -> ParseResult<U,Iter>,
+   Fail: FnOnce(Box<Iter>) -> Success::Output>(iter: Box<Iter>,parser: Parser,success: Success,fail: Fail) -> Success::Output{
+    if let Result::Ok(ParseSuccess(v,iter)) = parser(iter.clone()){
+        success(iter,v)
     }
     else{
-        Result::Ok(ParseSuccess(accum,iter))
+        fail(iter)
     }
+}
+
+fn num_literal_impl<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>,accum: u32) -> ParseResult<u32,Iter>{
+    backtrack(iter,num,|iter,i|{
+        num_literal_impl(iter,accum * 10 + i)
+    },|iter|{
+        Result::Ok(ParseSuccess(accum,iter))
+    })
 }
 
 fn num_literal<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>) -> ParseResult<u32,Iter>{
@@ -54,14 +65,13 @@ fn parse_char<Iter: Iterator<Item=char>>(c: char,mut iter: Box<Iter>) -> ParseRe
 }
 
 fn primitive<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>) -> ParseResult<Expr,Iter>{
-    if let Result::Ok(ParseSuccess(_,iter)) = parse_char('(',iter.clone()){
-        additive(iter).and_then(|ParseSuccess(expr,iter)|{
-            parse_char(')',iter).map(|ParseSuccess(_,iter)| ParseSuccess(expr,iter))
+    backtrack(iter,|iter| parse_char('(',iter),|iter,_|{
+            additive(iter).and_then(|ParseSuccess(expr,iter)|{
+                parse_char(')',iter).map(|ParseSuccess(_,iter)| ParseSuccess(expr,iter))
+            })
+        },|iter|{
+            num_literal(iter).map(|ParseSuccess(i,iter)| ParseSuccess(Expr::Number(i),iter))
         })
-    }
-    else{
-        num_literal(iter).map(|ParseSuccess(i,iter)| ParseSuccess(Expr::Number(i),iter))
-    }
 }
 
 fn multitive<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>) -> ParseResult<Expr,Iter>{
