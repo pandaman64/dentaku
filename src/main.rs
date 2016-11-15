@@ -46,17 +46,23 @@ fn num_literal<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>) -> ParseResul
     })
 }
 
-fn primitive<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>) -> ParseResult<Expr,Iter>{
-    num_literal(iter).map(|ParseSuccess(i,iter)| ParseSuccess(Expr::Number(i),iter))
-}
-/*
-fn parseChar<Iter: Iterator<char>>(c: char,iter: &mut Iter) -> ParseResult<char,Iter>{
+fn parse_char<Iter: Iterator<Item=char>>(c: char,mut iter: Box<Iter>) -> ParseResult<char,Iter>{
     match iter.next(){
-        c => Result::Ok(c,iter),
-        _ => Fail
+        Some(d) if c == d => Result::Ok(ParseSuccess(c,iter)),
+        _ => Result::Err(())
     }
 }
-*/
+
+fn primitive<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>) -> ParseResult<Expr,Iter>{
+    if let Result::Ok(ParseSuccess(_,iter)) = parse_char('(',iter.clone()){
+        additive(iter).and_then(|ParseSuccess(expr,iter)|{
+            parse_char(')',iter).map(|ParseSuccess(_,iter)| ParseSuccess(expr,iter))
+        })
+    }
+    else{
+        num_literal(iter).map(|ParseSuccess(i,iter)| ParseSuccess(Expr::Number(i),iter))
+    }
+}
 
 fn multitive<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>) -> ParseResult<Expr,Iter>{
     primitive(iter).and_then(|ParseSuccess(lhs,iter)|{
@@ -93,4 +99,5 @@ fn main() {
     println!("{:?}",additive(Box::new("1*2".chars())));
     println!("{:?}",additive(Box::new("1+2*3-4".chars())));
     println!("{:?}",additive(Box::new("12*34+56/78".chars())));
+    println!("{:?}",additive(Box::new("1+(2-3)*4+5".chars())));
 }
