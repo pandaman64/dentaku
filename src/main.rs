@@ -24,26 +24,26 @@ fn parse<Iter: Iterator<Item=char> + Clone>(iter: Box<Iter>) -> ParseResult<Expr
 impl<Iter: Iterator<Item=char> + Clone> Parser<Iter>{
     fn ctoi(c: char) -> Result<u32,()>{
         match c{
-            '0' => Result::Ok(0),
-            '1' => Result::Ok(1),
-            '2' => Result::Ok(2),
-            '3' => Result::Ok(3),
-            '4' => Result::Ok(4),
-            '5' => Result::Ok(5),
-            '6' => Result::Ok(6),
-            '7' => Result::Ok(7),
-            '8' => Result::Ok(8),
-            '9' => Result::Ok(9),
-            _ => Result::Err(())
+            '0' => Ok(0),
+            '1' => Ok(1),
+            '2' => Ok(2),
+            '3' => Ok(3),
+            '4' => Ok(4),
+            '5' => Ok(5),
+            '6' => Ok(6),
+            '7' => Ok(7),
+            '8' => Ok(8),
+            '9' => Ok(9),
+            _ => Err(())
         }
     }
 
     fn dvchar(mut self) -> ParseResult<char,Iter>{
         if let Some(c) = self.0.next(){
-            Result::Ok((c,self))
+            Ok((c,self))
         }
         else{
-            Result::Err(())
+            Err(())
         }
     }
 
@@ -54,11 +54,11 @@ impl<Iter: Iterator<Item=char> + Clone> Parser<Iter>{
     }
 
     fn dvnumber_literal_impl(self,accum: u32) -> ParseResult<u32,Iter>{
-        if let Result::Ok((i,deriv)) = self.clone().dvnumber(){
+        if let Ok((i,deriv)) = self.clone().dvnumber(){
             deriv.dvnumber_literal_impl(accum * 10 + i)
         }
         else{
-            Result::Ok((accum,self))
+            Ok((accum,self))
         }
     }
 
@@ -70,74 +70,74 @@ impl<Iter: Iterator<Item=char> + Clone> Parser<Iter>{
 
     fn dvprimary(self) -> ParseResult<Expr,Iter>{
         match self.clone().dvchar(){
-            Result::Ok(('(',deriv)) => match deriv.dvadditive(){
-                Result::Ok((expr,deriv)) => match deriv.dvchar(){
-                    Result::Ok((')',deriv)) => Result::Ok((expr,deriv)),
-                    _ => Result::Err(())
+            Ok(('(',deriv)) => match deriv.dvadditive(){
+                Ok((expr,deriv)) => match deriv.dvchar(){
+                    Ok((')',deriv)) => Ok((expr,deriv)),
+                    _ => Err(())
                 },
-                _ => Result::Err(())
+                _ => Err(())
             },
             _ => match self.dvnumber_literal(){
-                Result::Ok((i,deriv)) => Result::Ok((Expr::Number(i),deriv)),
-                Result::Err(()) => Result::Err(())
+                Ok((i,deriv)) => Ok((Expr::Number(i),deriv)),
+                Err(()) => Err(())
             }
         }
     }
 
     fn dvmultitive(self) -> ParseResult<Expr,Iter>{
-        if let Result::Ok((lhs,deriv)) = self.dvprimary(){
+        if let Ok((lhs,deriv)) = self.dvprimary(){
             match deriv.clone().dvchar(){
-                Result::Ok(('*',deriv)) => {
+                Ok(('*',deriv)) => {
                     match deriv.dvmultitive(){
-                        Result::Ok((rhs,deriv)) => Result::Ok((Expr::Multiply(Box::new(lhs),Box::new(rhs)),deriv)),
-                        Result::Err(_) => Result::Err(())
+                        Ok((rhs,deriv)) => Ok((Expr::Multiply(Box::new(lhs),Box::new(rhs)),deriv)),
+                        Err(_) => Err(())
                     }
                 },
-                Result::Ok(('/',deriv)) => {
+                Ok(('/',deriv)) => {
                     match deriv.dvmultitive(){
-                        Result::Ok((rhs,deriv)) => Result::Ok((Expr::Divide(Box::new(lhs),Box::new(rhs)),deriv)),
-                        Result::Err(_) => Result::Err(())
+                        Ok((rhs,deriv)) => Ok((Expr::Divide(Box::new(lhs),Box::new(rhs)),deriv)),
+                        Err(_) => Err(())
                     }
                 },
-                _ => Result::Ok((lhs,deriv))
+                _ => Ok((lhs,deriv))
             }
         }
         else{
-            Result::Err(())
+            Err(())
         }
     }
 
     fn dvadditive(self) -> ParseResult<Expr,Iter>{
-        if let Result::Ok((lhs,deriv)) = self.dvmultitive(){
+        if let Ok((lhs,deriv)) = self.dvmultitive(){
             match deriv.clone().dvchar(){
-                Result::Ok(('+',deriv)) => {
+                Ok(('+',deriv)) => {
                     match deriv.dvadditive(){
-                        Result::Ok((rhs,deriv)) => Result::Ok((Expr::Add(Box::new(lhs),Box::new(rhs)),deriv)),
-                        Result::Err(_) => Result::Err(())
+                        Ok((rhs,deriv)) => Ok((Expr::Add(Box::new(lhs),Box::new(rhs)),deriv)),
+                        Err(_) => Err(())
                     }
                 },
-                Result::Ok(('-',deriv)) => {
+                Ok(('-',deriv)) => {
                     match deriv.dvadditive(){
-                        Result::Ok((rhs,deriv)) => Result::Ok((Expr::Subtract(Box::new(lhs),Box::new(rhs)),deriv)),
-                        Result::Err(_) => Result::Err(())
+                        Ok((rhs,deriv)) => Ok((Expr::Subtract(Box::new(lhs),Box::new(rhs)),deriv)),
+                        Err(_) => Err(())
                     }
                 },
-                _ => Result::Ok((lhs,deriv))
+                _ => Ok((lhs,deriv))
             }
         }
         else{
-            Result::Err(())
+            Err(())
         }
     }
 }
 
 fn main() {
     match parse(Box::new("(12+34)*56-78".chars())){
-        Result::Ok((expr,_)) => println!("{:?}",expr),
-        Result::Err(()) => println!("parse error")
+        Ok((expr,_)) => println!("{:?}",expr),
+        Err(()) => println!("parse error")
     };
     match parse(Box::new("".chars())){
-        Result::Ok((expr,_)) => println!("{:?}",expr),
-        Result::Err(()) => println!("parse error")
+        Ok((expr,_)) => println!("{:?}",expr),
+        Err(()) => println!("parse error")
     };
 }
