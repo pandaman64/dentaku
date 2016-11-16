@@ -38,6 +38,7 @@ impl<Iter: Iterator<Item = char> + Clone> Parser<Iter> {
     }
 
     fn dvchar(mut self) -> ParseResult<char, Iter> {
+        println!("char");
         if let Some(c) = self.0.next() {
             Ok((c, self))
         } else {
@@ -58,10 +59,12 @@ impl<Iter: Iterator<Item = char> + Clone> Parser<Iter> {
     }
 
     fn dvnumber_literal(self) -> ParseResult<u32, Iter> {
+        println!("number");
         self.dvnumber().and_then(|(i, deriv)| deriv.dvnumber_literal_impl(i))
     }
 
     fn dvprimary(self) -> ParseResult<Expr, Iter> {
+        println!("primary");
         match self.clone().dvchar() {
             Ok(('(', deriv)) => {
                 match deriv.dvadditive() {
@@ -84,6 +87,7 @@ impl<Iter: Iterator<Item = char> + Clone> Parser<Iter> {
     }
 
     fn dvmultitive(self) -> ParseResult<Expr, Iter> {
+        println!("multitive");
         if let Ok((lhs, deriv)) = self.dvprimary() {
             match deriv.clone().dvchar() {
                 Ok(('*', deriv)) => {
@@ -108,6 +112,7 @@ impl<Iter: Iterator<Item = char> + Clone> Parser<Iter> {
     }
 
     fn dvadditive(self) -> ParseResult<Expr, Iter> {
+        println!("additive");
         if let Ok((lhs, deriv)) = self.dvmultitive() {
             match deriv.clone().dvchar() {
                 Ok(('+', deriv)) => {
