@@ -24,9 +24,7 @@ struct Memo {
 }
 
 #[derive(Debug,Clone)]
-struct Parser<Iter: Iterator<Item = (usize, char)> + Clone>(// usize,char)> + Clone>(
-                                                            Box<Iter>,
-                                                            usize);
+struct Parser<Iter: Iterator<Item = (usize, char)> + Clone>(Box<Iter>,usize);
 
 fn parse<Iter: Iterator<Item = (usize, char)> + Clone>(iter: Box<Iter>) -> ParseResult<Expr, Iter> {
     let count = iter.clone().count();
